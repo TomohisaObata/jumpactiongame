@@ -15,8 +15,8 @@ public class Enemy extends GameObject {
     public static final float ENEMY_HEIGHT = 0.8f;
 
     //速度
-    public static final float ENEMY_MOVE_VELOCITY_X = 2.0f;
-    public static final float ENEMY_MOVE_VELOCITY_Y = 2.0f;
+    public static final float ENEMY_MOVE_VELOCITY_X = 1.5f;
+    public static final float ENEMY_MOVE_VELOCITY_Y = 1.5f;
 
     //方向
     int mDirectionX = 1;

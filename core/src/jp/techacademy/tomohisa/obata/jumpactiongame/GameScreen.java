@@ -3,6 +3,7 @@ package jp.techacademy.tomohisa.obata.jumpactiongame;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -32,6 +33,7 @@ public class GameScreen extends ScreenAdapter {
     static final int GAME_STATE_READY = 0;
     static final int GAME_STATE_PLAYING = 1;
     static final int GAME_STATE_GAMEOVER = 2;
+    static final int GAME_STATE_GOAL = 3;
 
     // 重力
     static final float GRAVITY = -12;
@@ -60,8 +62,14 @@ public class GameScreen extends ScreenAdapter {
     int mHighScore;
     Preferences mPrefs;
 
+    Sound gameOverSound;
+    Sound goalSound;
+    long sId;
+
     public GameScreen(JumpActionGame game) {
         mGame = game;
+        gameOverSound = Gdx.audio.newSound(Gdx.files.internal("data/gameOver.mp3"));
+        goalSound = Gdx.audio.newSound(Gdx.files.internal("data/goal.mp3"));
 
         // 背景の準備
         Texture bgTexture = new Texture("back.png");
@@ -127,7 +135,7 @@ public class GameScreen extends ScreenAdapter {
                 mStars.add(star);
             }
 
-            if (mRandom.nextFloat() > 0.7f) {
+            if (mRandom.nextFloat() > 0.8f) {
                 Enemy enemy = new Enemy(enemyTexture, 0, 0, 72, 72);
                 enemy.setPosition(step.getX() + mRandom.nextFloat(), step.getY() + Enemy.ENEMY_HEIGHT + mRandom.nextFloat() * 4);
                 mEnemy.add(enemy);
@@ -221,6 +229,9 @@ public class GameScreen extends ScreenAdapter {
             case GAME_STATE_GAMEOVER:
                 updateGameOver();
                 break;
+            case GAME_STATE_GOAL:
+                updateGoal();
+                break;
         }
     }
 
@@ -285,14 +296,39 @@ public class GameScreen extends ScreenAdapter {
 
     private void updateGameOver() {
         if (Gdx.input.justTouched()) {
+            gameOverSound.stop(sId);
+            gameOverSound.dispose();
+            goalSound.dispose();
+            mGame.setScreen(new ResultScreen(mGame, mScore));
+        }
+    }
+
+    private void updateGoal() {
+        if (Gdx.input.justTouched()) {
+            goalSound.stop(sId);
+            goalSound.dispose();
+            gameOverSound.dispose();
             mGame.setScreen(new ResultScreen(mGame, mScore));
         }
     }
 
     private void checkGameOver() {
         if (mHeightSoFar - CAMERA_HEIGHT / 2 > mPlayer.getY()) {
-            Gdx.app.log("JampActionGame", "GAMEOVER");
             mGameState = GAME_STATE_GAMEOVER;
+        }
+        for(int i = 0 ; i < mEnemy.size() ; i++){
+            if (mPlayer.getBoundingRectangle().overlaps(mEnemy.get(i).getBoundingRectangle())) {
+                mGameState = GAME_STATE_GAMEOVER;
+                i = mEnemy.size();
+            }
+        }
+        if (mGameState == GAME_STATE_GAMEOVER){
+            Gdx.app.log("JampActionGame", "GAMEOVER");
+            sId = gameOverSound.play(1.0f);
+        }
+        if (mGameState == GAME_STATE_GOAL){
+            Gdx.app.log("JampActionGame", "GOAL");
+            sId = goalSound.play(1.0f);
         }
     }
 
@@ -300,7 +336,7 @@ public class GameScreen extends ScreenAdapter {
         // UFO(ゴールとの当たり判定)
         if (mPlayer.getBoundingRectangle().overlaps(mUfo.getBoundingRectangle())) {
             Gdx.app.log("JampActionGame", "CLEAR");
-            mGameState = GAME_STATE_GAMEOVER;
+            mGameState = GAME_STATE_GOAL;
             return;
         }
 
